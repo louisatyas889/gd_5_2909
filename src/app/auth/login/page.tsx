@@ -1,55 +1,112 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import AuthFromWrapper from '../../../components/AuthFromWrapper';
+import SocialAuth from '../../../components/SocialAuth';
+import { toast } from 'react-toastify';
 import Link from 'next/link';
-import AuthFromWrapper from '@/components/AuthFromWrapper'; // Sesuaikan path-nya
-import SocialAuth from '@/components/SocialAuth'; // Sesuaikan path-nya
 
-const DEFAULT_CAPTCHA = 'W6X8Z'; // Contoh captcha statis
+interface LoginFormData {
+  email: string;
+  password: string;
+  captchaInput: string;
+  rememberMe?: boolean;
+}
+
+interface ErrorObject {
+  email?: string;
+  password?: string;
+  captcha?: string;
+}
+
+const DEFAULT_CAPTCHA = 'AbCdEf';
 
 const LoginPage = () => {
-  // 1. State untuk data form
-  const [formData, setFormData] = useState({
+  const router = useRouter();
+  const [formData, setFormData] = useState<LoginFormData>({
+    email: '',
+    password: '',
     captchaInput: '',
-    rememberMe: false,
+    rememberMe: false
   });
 
-  // 2. State untuk error
-  const [errors, setErrors] = useState({
-    captcha: '',
-  });
+  const [errors, setErrors] = useState<ErrorObject>({});
 
-  // 3. Handler untuk perubahan input
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    
-    // Reset error pas user ngetik lagi
-    if (name === 'captchaInput') setErrors({ captcha: '' });
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+
+    setErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
-  // 4. Handler saat tombol Sign In diklik
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    if (formData.captchaInput !== DEFAULT_CAPTCHA) {
-      setErrors({ captcha: 'Captcha tidak sesuai!' });
+
+    const newErrors: ErrorObject = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email tidak boleh kosong';
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = 'Password tidak boleh kosong';
+    }
+
+    if (!formData.captchaInput.trim()) {
+      newErrors.captcha = 'Captcha wajib diisi';
+    } else if (formData.captchaInput !== DEFAULT_CAPTCHA) {
+      newErrors.captcha = 'Captcha salah';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error('Login Gagal!', { theme: 'dark', position: 'top-right' });
       return;
     }
 
-    alert('Login Berhasil!');
-    // Lanjutkan logika login di sini
+    toast.success('Login Berhasil!', { theme: 'dark', position: 'top-right' });
+    router.push('/home');
   };
 
   return (
-    <AuthFromWrapper title="Sign In">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Masukkan kodingan input email/password di sini */}
-        
-        {/* --- LANJUTAN KODINGAN YANG KAMU KIRIM TADI --- */}
+    <AuthFromWrapper title="Login">
+      <form onSubmit={handleSubmit} className="space-y-5 w-full">
+
+        {/* Email */}
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
+          <input
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            className={`w-full px-4 py-2.5 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
+            placeholder="Masukkan email"
+          />
+          {errors.email && <p className="text-red-600 text-sm italic mt-1">{errors.email}</p>}
+        </div>
+
+        {/* Password */}
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            className={`w-full px-4 py-2.5 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
+            placeholder="Masukkan password"
+          />
+          {errors.password && <p className="text-red-600 text-sm italic mt-1">{errors.password}</p>}
+        </div>
+
+        {/* Remember Me + Forgot */}
         <div className="flex items-center justify-between mt-2">
           <label className="flex items-center text-sm text-gray-700">
             <input
@@ -63,11 +120,16 @@ const LoginPage = () => {
             />
             Ingat Saya
           </label>
-          <Link href="/auth/forgot-password" size-sm font-semibold className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
+
+          <Link
+            href="/auth/forgot-password"
+            className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
+          >
             Forgot Password?
           </Link>
         </div>
 
+        {/* Captcha */}
         <div className="space-y-2">
           <div className="flex items-center space-x-3">
             <span className="text-sm font-medium text-gray-700">Captcha:</span>
@@ -81,11 +143,12 @@ const LoginPage = () => {
             value={formData.captchaInput}
             onChange={handleChange}
             className={`w-full px-4 py-2.5 rounded-lg border ${errors.captcha ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Masukan captcha"
+            placeholder="Masukkan captcha"
           />
           {errors.captcha && <p className="text-red-600 text-sm italic mt-1">{errors.captcha}</p>}
         </div>
 
+        {/* Button */}
         <button
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg"
@@ -101,6 +164,7 @@ const LoginPage = () => {
             Daftar
           </Link>
         </p>
+
       </form>
     </AuthFromWrapper>
   );
